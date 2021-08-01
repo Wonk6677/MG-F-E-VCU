@@ -70,8 +70,9 @@ delay(3000);
 digitalRead (simpprox);
 if (digitalRead(simpprox = LOW)) ///put CPWM and CSDN to High and enable charge mode, disabling drive.
 {
-digitalWrite(cpwm, LOW); 
-digitalWrite(csdn, LOW); 
+//Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
+digitalWrite(cpwm, LOW); // Or high? 
+digitalWrite(csdn, LOW); // Or high? 
 
 }
 else // run normal start up
@@ -133,6 +134,7 @@ if ((simppilot = LOW)&& (chargebutton = LOW))
 {
 digitalWrite (chargestart, LOW); // semd signal to simpcharge to send AC voltage
 digitalWrite (precharge, LOW); // close precharge contactor
+
 delay (10000); //delay to allow precharge
 }
 if ((simppilot = LOW) && (DCSW = LOW) && (chargebutton = LOW)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
@@ -144,9 +146,10 @@ digitalWrite (csdn, HIGH);
 }
 else
 {
+digitalWrite (csdn, LOW);
 digitalWrite (accontactor, HIGH);
 digitalWrite (chargestart, HIGH);
-//Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
+
 }
 
 //---------Temperature read
