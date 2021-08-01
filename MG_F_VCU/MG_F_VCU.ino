@@ -7,6 +7,7 @@ int fuel = 7;
 int dcdcon = 2;
 int dcdccontrol = 8;
 //coolant temp and engine bay fan
+
 int ThermistorPin = 18;
 int enginefan = 17;
 int Vo;
@@ -14,9 +15,12 @@ int coolanttemp;
 float R1 = 10000;
 float logR2, R2, T;
 float c1 = 0.9818585903e-03, c2 = 1.995199371e-04, c3 = 1.684445298e-07;
+
 //contactors
+int maincontactorsignal = 16;
 int precharge = 22;
 int maincontactor = 21;
+
 //Charging
 int cpwm = 24;
 int csdn = 25;
@@ -27,6 +31,10 @@ int chargestart = 28;
 int chargebutton = 31;
 int DCSW = 29;
 
+//HV stuff
+int HVbus;
+int HVdiff;
+
 
 static CAN_message_t rxmsg, txmsg;
 
@@ -34,6 +42,7 @@ static CAN_message_t rxmsg, txmsg;
 void setup() {
 
 Can0.begin(500000);
+Serial.begin(115200);
 //outputs
 pinMode(rpm,OUTPUT);
 pinMode(enginefan,OUTPUT);
@@ -52,11 +61,13 @@ pinMode(simpprox, INPUT_PULLUP);
 pinMode(simppilot, INPUT_PULLUP);
 pinMode(chargebutton, INPUT_PULLUP);
 pinMode(DCSW, INPUT_PULLUP);
+pinMode(maincontactorsignal, INPUT_PULLUP);
 
 delay(3000);
 
 
 //-------If charge port plugged in on startup run through charging setup.
+digitalRead (simpprox);
 if (digitalRead(simpprox = LOW)) ///put CPWM and CSDN to High and enable charge mode, disabling drive.
 {
 digitalWrite(cpwm, LOW); 
@@ -67,46 +78,53 @@ else // run normal start up
 {
 digitalWrite (precharge, LOW);   //activate prehcharge on start up
 analogWrite(rpm, 128);
-analogWriteFrequency(rpm, 1000); //Start rpm at intial high to simulate engine start.
-delay(3000);
+analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.
 }
-
+delay(3000);
 }
 void loop() {
 
 
 
 //----Read canbus messages
-  
-//--------- get 12v voltage
+
 if (Can0.available()) {
+
+  
+//--------- get HV bus voltage and battery voltage
 Can0.read(rxmsg);
-float voltagebig = (( rxmsg.buf[2] << 8) | rxmsg.buf[1]);
-float voltage = voltagebig/32;
+HVbus = (rxmsg.buf[5]);
+HVdiff = (rxmsg.buf[6]) - (rxmsg.buf[5]); //calculates difference between battery voltage and HV bus
+
+
 
 ///------ get rpm and send to gauge
 
 float rpmraw = (( rxmsg.buf[4] << 8) | rxmsg.buf[3]);
 float rpm = rpmraw/32;
 int rpmpulse = rpm*2;
-if (rpmpulse < 800) //power steering is expecting to see engine idle at least.
+if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
 {
-rpmpulse = 802;
+rpmpulse = 1602;
 }
 analogWriteFrequency(rpm, rpmpulse); 
 }
 
 //--------contactor close cycle
 // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
-
-
-// when main contactor closes do following
-/*
+digitalRead (maincontactorsignal);
+if ((maincontactorsignal = LOW) && ( HVdiff < 10) && digitalRead (simpprox = HIGH)) //only run if charge cable is unplugged
+{
+digitalWrite (maincontactor, LOW);
 analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-digitalWrite (dcdcon, HIGH);
-*/
+digitalWrite (dcdcon, LOW);
+digitalWrite (precharge, HIGH);
+}
 
-//--------Charge process
+
+
+
+//--------Charge process Not done yet
 digitalRead (simppilot);
 digitalRead (chargebutton);
 digitalRead (DCSW);
@@ -114,7 +132,8 @@ digitalRead (DCSW);
 if ((simppilot = LOW)&& (chargebutton = LOW))
 {
 digitalWrite (chargestart, LOW); // semd signal to simpcharge to send AC voltage
-delay (5000); //delay to allow precharge
+digitalWrite (precharge, LOW); // close precharge contactor
+delay (10000); //delay to allow precharge
 }
 if ((simppilot = LOW) && (DCSW = LOW) && (chargebutton = LOW)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
 {
@@ -132,12 +151,12 @@ digitalWrite (chargestart, HIGH);
 
 //---------Temperature read
 
-Vo = analogRead(ThermistorPin);
+Vo = analogRead(ThermistorPin); /// use 10k resistor
   R2 = R1 * (1023.0 / (float)Vo - 1.0);
   logR2 = log(R2);
   T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
   T = T - 273.15; //in C
-  coolanttemp = T;
+  coolanttemp = T; 
 
 //--------- Activate engine bay fan
 
@@ -148,6 +167,7 @@ digitalWrite(enginefan, LOW);
 else
 {
 digitalWrite(enginefan, HIGH);
+
 }
 
 
