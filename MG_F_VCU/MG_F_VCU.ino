@@ -133,9 +133,8 @@ digitalRead (DCSW);
 if ((simppilot = LOW)&& (chargebutton = LOW))
 {
 digitalWrite (chargestart, LOW); // semd signal to simpcharge to send AC voltage
-digitalWrite (precharge, LOW); // close precharge contactor
+digitalWrite (precharge, LOW); // close  Battery precharge contactor
 
-delay (10000); //delay to allow precharge
 }
 if ((simppilot = LOW) && (DCSW = LOW) && (chargebutton = LOW)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
 {
