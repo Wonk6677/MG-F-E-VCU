@@ -92,23 +92,30 @@ pinMode(chargebutton, INPUT_PULLUP);
 pinMode(DCSW, INPUT_PULLUP);
 pinMode(maincontactorsignal, INPUT_PULLUP);
 
+//Switch off contactors on startup
+digitalWrite (precharge, LOW);
+digitalWrite (maincontactor, LOW);
+
+
 delay(3000);
 
 
 //-------If charge port plugged in on startup run through charging setup.
 digitalRead (simpprox);
-if (digitalRead(simpprox = LOW)) ///put CPWM and CSDN to High and enable charge mode, disabling drive.
+if (digitalRead(simpprox)) ///put CPWM and CSDN to High and enable charge mode, disabling drive.
 {
-//Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
-digitalWrite(cpwm, LOW); // Or high? 
+digitalWrite (precharge, HIGH);   //activate prehcharge on start up
+analogWrite(rpm, 128);
+analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
 digitalWrite(csdn, LOW); // Or high? 
+Serial.print("normal startup");
 }
 else // run normal start up
 {
-digitalWrite (precharge, LOW);   //activate prehcharge on start up
-analogWrite(rpm, 128);
-analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.
-
+ //Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
+digitalWrite(cpwm, LOW); // Or high? 
+digitalWrite(csdn, LOW); // Or high? 
+Serial.print("charge port connected");
 }
 delay(3000);
 }
@@ -129,8 +136,7 @@ void coolant()
 if(coolanttimer.check()){
 //---------Temperature read
 
- Serial.write('\r');
-   Serial.write('\n');
+  
 Vo = analogRead(ThermistorPin); /// use 10k resistor
   R2 = R1 * (1023.0 / (float)Vo - 1.0);
   logR2 = log(R2);
@@ -152,11 +158,7 @@ digitalWrite(enginefan, HIGH);
 }
 }
 
-
-void loop() {
-Can0.events();
-  ///------ get rpm and send to gauge
-
+void gauges(){
 float rpm = rpmraw/32;
 int rpmpulse = rpm*2;
 if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
@@ -164,7 +166,19 @@ if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
 rpmpulse = 1602;
 }
 analogWriteFrequency(rpm, rpmpulse); 
-//Serial.print(rpm);
+
+//To Do
+// BMS SoC and temperature from motor
+
+}
+
+
+
+void loop() {
+Can0.events();
+  ///------ get rpm and send to gauge
+
+
    
 
 
@@ -172,12 +186,12 @@ analogWriteFrequency(rpm, rpmpulse);
 // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
 HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
 digitalRead (maincontactorsignal);
-if ((maincontactorsignal = LOW) && ( HVdiff < 10) && digitalRead (simpprox = HIGH)) //only run if charge cable is unplugged
+if ((maincontactorsignal = HIGH) && ( HVdiff < 10) && digitalRead (simpprox = LOW)) //only run if charge cable is unplugged
 {
-digitalWrite (maincontactor, LOW);
+digitalWrite (maincontactor, HIGH);
 analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-digitalWrite (dcdcon, LOW);
-digitalWrite (precharge, HIGH);
+digitalWrite (dcdcon, HIGH);
+digitalWrite (precharge, LOW);
 }
 
 
@@ -188,30 +202,29 @@ digitalRead (simppilot);
 digitalRead (chargebutton);
 digitalRead (DCSW);
 
-if ((simppilot = LOW)&& (chargebutton = LOW))
+if ((simppilot = HIGH)&& (chargebutton = HIGH))
 {
-digitalWrite (chargestart, LOW); // semd signal to simpcharge to send AC voltage
-digitalWrite (precharge, LOW); // close  Battery precharge contactor
+digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
+digitalWrite (precharge, HIGH); // close  Battery precharge contactor
 
 }
-if ((simppilot = LOW) && (DCSW = LOW) && (chargebutton = LOW)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
+if ((simppilot = HIGH) && (DCSW = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
 {
-digitalWrite (accontactor, LOW);
-digitalWrite (maincontactor, LOW);
-digitalWrite (csdn, HIGH);
+digitalWrite (accontactor, HIGH);
+digitalWrite (maincontactor, HIGH);
+digitalWrite (csdn, LOW);
 
 }
 else
 {
-digitalWrite (csdn, LOW);
-digitalWrite (accontactor, HIGH);
-digitalWrite (chargestart, HIGH);
+digitalWrite (csdn, HIGH);
+digitalWrite (accontactor, LOW);
+digitalWrite (chargestart, LOW);
 
 }
 
 coolant(); // check coolant temperature and swtich on engine bay fan if needed.
-
-
+gauges(); //send information to guages
 
 
 
