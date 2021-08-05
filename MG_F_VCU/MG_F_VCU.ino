@@ -1,8 +1,19 @@
-#include <FlexCAN.h>
+#include <FlexCAN_T4.h>
+#include <Metro.h>
+FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
+#define NUM_TX_MAILBOXES 2
+#define NUM_RX_MAILBOXES 6
+
+//////timers
+Metro coolanttimer = Metro(1000);
+
+
+
 //gauges
 int rpm = 5;
 int motortempgauge = 6;
 int fuel = 7;
+float rpmraw;
 
 int dcdcon = 2;
 int dcdccontrol = 8;
@@ -34,15 +45,33 @@ int DCSW = 29;
 //HV stuff
 int HVbus;
 int HVdiff;
-
-
-static CAN_message_t rxmsg, txmsg;
+int Batvolt;
 
 
 void setup() {
+Serial.begin(115200); delay(400);
+Can0.begin();
+  Can0.setBaudRate(500000);
+  Can0.setMaxMB(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES);
+  for (int i = 0; i<NUM_RX_MAILBOXES; i++){
+    Can0.setMB(i,RX,STD);
+  }
+  for (int i = NUM_RX_MAILBOXES; i<(NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); i++){
+    Can0.setMB(i,TX,STD);
+  }
+  Can0.setMBFilter(REJECT_ALL);
+  Can0.enableMBInterrupts();
+  Can0.setMBFilterProcessing(MB0,0x3FF, 0xFF);
+  //Can0.setMBFilterProcessing(MB1,0x400, 0xFF);
+  //Can0.setMBFilterProcessing(MB2,0x0B,0xFF);
+  Can0.enhanceFilter(MB0);
+  //Can0.enhanceFilter(MB1);
+  Can0.onReceive(MB0,canSniff1);
+  //Can0.onReceive(MB1,canSniff2);
+  //Can0.onReceive(MB2,canSniff);
+  Can0.mailboxStatus();
 
-Can0.begin(500000);
-Serial.begin(115200);
+
 //outputs
 pinMode(rpm,OUTPUT);
 pinMode(enginefan,OUTPUT);
@@ -73,35 +102,61 @@ if (digitalRead(simpprox = LOW)) ///put CPWM and CSDN to High and enable charge 
 //Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
 digitalWrite(cpwm, LOW); // Or high? 
 digitalWrite(csdn, LOW); // Or high? 
-
 }
 else // run normal start up
 {
 digitalWrite (precharge, LOW);   //activate prehcharge on start up
 analogWrite(rpm, 128);
 analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.
+
 }
 delay(3000);
 }
-void loop() {
 
-
-
-//----Read canbus messages
-
-if (Can0.available()) {
-
+void canSniff1(const CAN_message_t &msg) {
+ if (msg.id == 0x3FF)
+  {
+  HVbus = msg.buf[5];
+  Batvolt = msg.buf[6];
+  rpmraw = (( msg.buf[4] << 8) | msg.buf[3]);
   
-//--------- get HV bus voltage and battery voltage
-Can0.read(rxmsg);
-HVbus = (rxmsg.buf[5]);
-HVdiff = (rxmsg.buf[6]) - (rxmsg.buf[5]); //calculates difference between battery voltage and HV bus
+}
+}
 
 
+void coolant()
+{
+if(coolanttimer.check()){
+//---------Temperature read
 
-///------ get rpm and send to gauge
+ Serial.write('\r');
+   Serial.write('\n');
+Vo = analogRead(ThermistorPin); /// use 10k resistor
+  R2 = R1 * (1023.0 / (float)Vo - 1.0);
+  logR2 = log(R2);
+  T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+  T = T - 273.15; //in C
+  coolanttemp = T; 
 
-float rpmraw = (( rxmsg.buf[4] << 8) | rxmsg.buf[3]);
+//--------- Activate engine bay fan
+
+if (coolanttemp > 40) 
+{
+digitalWrite(enginefan, LOW); 
+}
+else
+{
+digitalWrite(enginefan, HIGH);
+}
+
+}
+}
+
+
+void loop() {
+Can0.events();
+  ///------ get rpm and send to gauge
+
 float rpm = rpmraw/32;
 int rpmpulse = rpm*2;
 if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
@@ -109,10 +164,13 @@ if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
 rpmpulse = 1602;
 }
 analogWriteFrequency(rpm, rpmpulse); 
-}
+//Serial.print(rpm);
+   
+
 
 //--------contactor close cycle
 // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
+HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
 digitalRead (maincontactorsignal);
 if ((maincontactorsignal = LOW) && ( HVdiff < 10) && digitalRead (simpprox = HIGH)) //only run if charge cable is unplugged
 {
@@ -151,26 +209,7 @@ digitalWrite (chargestart, HIGH);
 
 }
 
-//---------Temperature read
-
-Vo = analogRead(ThermistorPin); /// use 10k resistor
-  R2 = R1 * (1023.0 / (float)Vo - 1.0);
-  logR2 = log(R2);
-  T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
-  T = T - 273.15; //in C
-  coolanttemp = T; 
-
-//--------- Activate engine bay fan
-
-if (coolanttemp > 40) 
-{
-digitalWrite(enginefan, LOW); 
-}
-else
-{
-digitalWrite(enginefan, HIGH);
-
-}
+coolant(); // check coolant temperature and swtich on engine bay fan if needed.
 
 
 
