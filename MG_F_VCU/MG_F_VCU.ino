@@ -7,6 +7,11 @@ FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
 //////timers
 Metro coolanttimer = Metro(1000);
 
+//OI inputs
+int startbutton = 13;
+int brake = 14;
+int fwd = 15;
+int rev = 16;
 
 
 //gauges
@@ -14,9 +19,11 @@ int rpm = 5;
 int motortempgauge = 6;
 int fuel = 7;
 float rpmraw;
+int batterylight = 9;
 
 int dcdcon = 2;
 int dcdccontrol = 8;
+
 //coolant temp and engine bay fan
 
 int ThermistorPin = 18;
@@ -28,7 +35,7 @@ float logR2, R2, T;
 float c1 = 0.9818585903e-03, c2 = 1.995199371e-04, c3 = 1.684445298e-07;
 
 //contactors
-int maincontactorsignal = 16;
+int maincontactorsignal = 20;
 int precharge = 22;
 int maincontactor = 21;
 
@@ -47,8 +54,12 @@ int HVbus;
 int HVdiff;
 int Batvolt;
 
+// car inputs
+
 
 void setup() {
+
+
 Serial.begin(115200); delay(400);
 Can0.begin();
   Can0.setBaudRate(500000);
@@ -84,7 +95,11 @@ pinMode(chargestart, OUTPUT);
 pinMode(cpwm, OUTPUT);
 pinMode(csdn, OUTPUT);
 pinMode(accontactor, OUTPUT);
-
+pinMode(startbutton, OUTPUT);
+pinMode(fwd, OUTPUT);
+pinMode(rev, OUTPUT);
+pinMode(brake, OUTPUT);
+pinMode(batterylight, OUTPUT);
 //inputs
 pinMode(simpprox, INPUT_PULLUP);
 pinMode(simppilot, INPUT_PULLUP);
@@ -92,11 +107,12 @@ pinMode(chargebutton, INPUT_PULLUP);
 pinMode(DCSW, INPUT_PULLUP);
 pinMode(maincontactorsignal, INPUT_PULLUP);
 
+
 //Switch off contactors on startup
 digitalWrite (precharge, LOW);
 digitalWrite (maincontactor, LOW);
 
-
+digitalWrite (startbutton, HIGH);// send start signal to OI board.
 delay(3000);
 
 
@@ -115,6 +131,8 @@ else // run normal start up
  //Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
 digitalWrite(cpwm, LOW); // Or high? 
 digitalWrite(csdn, LOW); // Or high? 
+digitalWrite(fwd, LOW); // Or high? 
+digitalWrite(rev, LOW); // Or high? 
 Serial.print("charge port connected");
 }
 delay(3000);
@@ -186,7 +204,7 @@ Can0.events();
 // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
 HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
 digitalRead (maincontactorsignal);
-if ((maincontactorsignal = HIGH) && ( HVdiff < 10) && digitalRead (simpprox = LOW)) //only run if charge cable is unplugged
+if ((maincontactorsignal = HIGH) && ( HVdiff < 10))
 {
 digitalWrite (maincontactor, HIGH);
 analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
