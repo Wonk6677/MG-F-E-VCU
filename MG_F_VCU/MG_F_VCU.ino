@@ -47,7 +47,6 @@ int simpprox = 26;
 int simppilot = 27;
 int chargestart = 28;
 int chargebutton = 31;
-int DCSW = 29;
 
 //HV stuff
 int HVbus;
@@ -104,7 +103,6 @@ pinMode(batterylight, OUTPUT);
 pinMode(simpprox, INPUT_PULLUP);
 pinMode(simppilot, INPUT_PULLUP);
 pinMode(chargebutton, INPUT_PULLUP);
-pinMode(DCSW, INPUT_PULLUP);
 pinMode(maincontactorsignal, INPUT_PULLUP);
 
 
@@ -117,22 +115,22 @@ delay(3000);
 
 
 //-------If charge port plugged in on startup run through charging setup.
-digitalRead (simpprox);
-if (digitalRead(simpprox)) ///put CPWM and CSDN to High and enable charge mode, disabling drive.
+digitalRead (simpprox); 
+if (digitalRead(simpprox)) // run normal start up
 {
 digitalWrite (precharge, HIGH);   //activate prehcharge on start up
 analogWrite(rpm, 128);
 analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
-digitalWrite(csdn, LOW); // Or high? 
+digitalWrite(csdn, LOW);
 Serial.print("normal startup");
 }
-else // run normal start up
+else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
 {
  //Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
-digitalWrite(cpwm, LOW); // Or high? 
-digitalWrite(csdn, LOW); // Or high? 
-digitalWrite(fwd, LOW); // Or high? 
-digitalWrite(rev, LOW); // Or high? 
+digitalWrite(csdn, HIGH); 
+digitalWrite(cpwm, HIGH); 
+digitalWrite(fwd, HIGH);
+digitalWrite(rev, HIGH); 
 Serial.print("charge port connected");
 }
 delay(3000);
@@ -218,7 +216,7 @@ digitalWrite (precharge, LOW);
 //--------Charge process Not done yet
 digitalRead (simppilot);
 digitalRead (chargebutton);
-digitalRead (DCSW);
+digitalRead (maincontactorsignal);
 
 if ((simppilot = HIGH)&& (chargebutton = HIGH))
 {
@@ -226,7 +224,7 @@ digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltag
 digitalWrite (precharge, HIGH); // close  Battery precharge contactor
 
 }
-if ((simppilot = HIGH) && (DCSW = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
+if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
 {
 digitalWrite (accontactor, HIGH);
 digitalWrite (maincontactor, HIGH);
