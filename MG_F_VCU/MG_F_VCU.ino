@@ -55,6 +55,7 @@ int Batvolt;
 int AuxBattVolt;
 
 // car inputs
+int Batterysoc;
 
 
 void setup() {
@@ -152,6 +153,8 @@ void canSniff1(const CAN_message_t &msg) {
   {
     AuxBattVolt = msg.buf[0];
   }
+
+  //something from BMS that updates int batterysoc.
 }
 
   void coolant()
@@ -181,36 +184,7 @@ void canSniff1(const CAN_message_t &msg) {
     }
   }
 
-  void gauges() {
-    float rpm = rpmraw / 32;
-    int rpmpulse = rpm * 2;
-    if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
-    {
-      rpmpulse = 1602;
-    }
-
-    analogWriteFrequency(rpm, rpmpulse);
-
-    if (AuxBattVolt < 13)
-    {
-       digitalWrite(batterylight, LOW);
-    }
-    else
-       digitalWrite(batterylight, HIGH);
-
-    //To Do
-
-    // BMS SoC and temperature from motor
-
-  }
-
-
-
-  void loop() {
-    Can0.events();
-
-
-    //--------contactor close cycle
+   void closecontactor(){//--------contactor close cycle
     // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
     HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
     digitalRead (maincontactorsignal);
@@ -221,9 +195,46 @@ void canSniff1(const CAN_message_t &msg) {
       digitalWrite (dcdcon, HIGH);
       digitalWrite (precharge, LOW);
     }
+    //to do. work with charging.
+    
+   }
+
+  void gauges() {
+    // RPM
+    float rpm = rpmraw / 32;
+    int rpmpulse = rpm * 2;
+    if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
+    {
+      rpmpulse = 1602;
+    }
+
+    analogWriteFrequency(rpm, rpmpulse);
+    // Battery light
+    if (AuxBattVolt < 13)
+    {
+       digitalWrite(batterylight, HIGH);
+    }
+    else
+    {
+       digitalWrite(batterylight, LOW);
+    }
+    // Battery Soc
+    analogWriteFrequency(fuel, 500);
+    int fuelpwm = Batterysoc * 2.43;
+    int fuelfreq = fuelpwm + 12.8;
+    analogWrite(fuel, fuelfreq);
+
+    //To Do
+
+    // temperature from motor
+
+  }
 
 
 
+  void loop() {
+    Can0.events();
+    closecontactor(); //checks precharge level and close contactor
 
     //--------Charge process Not done yet
     digitalRead (simppilot);
