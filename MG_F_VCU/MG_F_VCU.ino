@@ -157,114 +157,115 @@ void canSniff1(const CAN_message_t &msg) {
   //something from BMS that updates int batterysoc.
 }
 
-  void coolant()
+void coolant()
+{
+  if (coolanttimer.check()) {
+    //---------Temperature read
+
+
+    Vo = analogRead(ThermistorPin); /// use 10k resistor
+    R2 = R1 * (1023.0 / (float)Vo - 1.0);
+    logR2 = log(R2);
+    T = (1.0 / (c1 + c2 * logR2 + c3 * logR2 * logR2 * logR2));
+    T = T - 273.15; //in C
+    coolanttemp = T;
+
+    //--------- Activate engine bay fan
+
+    if (coolanttemp > 40)
+    {
+      digitalWrite(enginefan, LOW);
+    }
+    else
+    {
+      digitalWrite(enginefan, HIGH);
+    }
+
+  }
+}
+
+void closecontactor() { //--------contactor close cycle
+  // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
+  HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
+  digitalRead (maincontactorsignal);
+  if ((maincontactorsignal = HIGH) && ( HVdiff < 10))
   {
-    if (coolanttimer.check()) {
-      //---------Temperature read
+    digitalWrite (maincontactor, HIGH);
+    analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+    digitalWrite (dcdcon, HIGH);
+    digitalWrite (precharge, LOW);
+  }
+  //to do. work with charging.
 
+}
 
-      Vo = analogRead(ThermistorPin); /// use 10k resistor
-      R2 = R1 * (1023.0 / (float)Vo - 1.0);
-      logR2 = log(R2);
-      T = (1.0 / (c1 + c2 * logR2 + c3 * logR2 * logR2 * logR2));
-      T = T - 273.15; //in C
-      coolanttemp = T;
-
-      //--------- Activate engine bay fan
-
-      if (coolanttemp > 40)
-      {
-        digitalWrite(enginefan, LOW);
-      }
-      else
-      {
-        digitalWrite(enginefan, HIGH);
-      }
-
-    }
+void gauges() {
+  // RPM
+  float rpm = rpmraw / 32;
+  int rpmpulse = rpm * 2;
+  if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
+  {
+    rpmpulse = 1602;
   }
 
-   void closecontactor(){//--------contactor close cycle
-    // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
-    HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
-    digitalRead (maincontactorsignal);
-    if ((maincontactorsignal = HIGH) && ( HVdiff < 10))
-    {
-      digitalWrite (maincontactor, HIGH);
-      analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-      digitalWrite (dcdcon, HIGH);
-      digitalWrite (precharge, LOW);
-    }
-    //to do. work with charging.
-    
-   }
+  analogWriteFrequency(rpm, rpmpulse);
+  // Battery light
+  if (AuxBattVolt < 13)
+  {
+    digitalWrite(batterylight, HIGH);
+  }
+  else
+  {
+    digitalWrite(batterylight, LOW);
+  }
+  // Battery Soc
+  analogWriteFrequency(fuel, 500);
+  int fuelpwm = Batterysoc * 2.43;
+  int fuelfreq = fuelpwm + 12.8;
+  analogWrite(fuel, fuelfreq);
 
-  void gauges() {
-    // RPM
-    float rpm = rpmraw / 32;
-    int rpmpulse = rpm * 2;
-    if (rpmpulse < 1600) //power steering is expecting to see engine idle at least.
-    {
-      rpmpulse = 1602;
-    }
+  //To Do
 
-    analogWriteFrequency(rpm, rpmpulse);
-    // Battery light
-    if (AuxBattVolt < 13)
-    {
-       digitalWrite(batterylight, HIGH);
-    }
-    else
-    {
-       digitalWrite(batterylight, LOW);
-    }
-    // Battery Soc
-    analogWriteFrequency(fuel, 500);
-    int fuelpwm = Batterysoc * 2.43;
-    int fuelfreq = fuelpwm + 12.8;
-    analogWrite(fuel, fuelfreq);
+  // temperature from motor
 
-    //To Do
+}
 
-    // temperature from motor
+void charging() {
+  //--------Charge process Not done yet
+  digitalRead (simppilot);
+  digitalRead (chargebutton);
+  digitalRead (maincontactorsignal);
+
+  if ((simppilot = HIGH) && (chargebutton = HIGH))
+  {
+    digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
+    digitalWrite (precharge, HIGH); // close  Battery precharge contactor
 
   }
-
-
-
-  void loop() {
-    Can0.events();
-    closecontactor(); //checks precharge level and close contactor
-
-    //--------Charge process Not done yet
-    digitalRead (simppilot);
-    digitalRead (chargebutton);
-    digitalRead (maincontactorsignal);
-
-    if ((simppilot = HIGH) && (chargebutton = HIGH))
-    {
-      digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
-      digitalWrite (precharge, HIGH); // close  Battery precharge contactor
-
-    }
-    if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
-    {
-      digitalWrite (accontactor, HIGH);
-      digitalWrite (maincontactor, HIGH);
-      digitalWrite (csdn, LOW);
-
-    }
-    else
-    {
-      digitalWrite (csdn, HIGH);
-      digitalWrite (accontactor, LOW);
-      digitalWrite (chargestart, LOW);
-
-    }
-
-    coolant(); // check coolant temperature and swtich on engine bay fan if needed.
-    gauges(); //send information to guages
-
-
+  if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
+  {
+    digitalWrite (accontactor, HIGH);
+    digitalWrite (maincontactor, HIGH);
+    digitalWrite (csdn, LOW);
 
   }
+  else
+  {
+    digitalWrite (csdn, HIGH);
+    digitalWrite (accontactor, LOW);
+    digitalWrite (chargestart, LOW);
+
+  }
+}
+
+
+void loop() {
+  Can0.events();
+  closecontactor(); //checks precharge level and close contactor
+  charging();
+  coolant(); // check coolant temperature and swtich on engine bay fan if needed.
+  gauges(); //send information to guages
+
+
+
+}
