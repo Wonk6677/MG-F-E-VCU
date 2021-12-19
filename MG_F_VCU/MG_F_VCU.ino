@@ -55,6 +55,8 @@ int Batvolt;
 int Batvoltraw;
 int AuxBattVolt;
 
+int opmode;
+
 // car inputs
 int Batterysoc;
 
@@ -129,6 +131,8 @@ void setup() {
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
     digitalWrite(csdn, LOW);
     Serial.print("normal startup");
+    opmode = 0;
+
   }
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
@@ -138,6 +142,7 @@ void setup() {
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
     Serial.print("charge port connected");
+    opmode = 1;
   }
   delay(3000);
 }
@@ -234,38 +239,46 @@ void gauges() {
 void charging() {
   //--------Charge process Not done yet
   digitalRead (simppilot);
-  digitalRead (chargebutton);
-  digitalRead (maincontactorsignal);
+  digitalRead (simpprox);
+  //digitalRead (chargebutton);
+  digitalRead (maincontactorsignal); // main contactor close signal from OI control board
 
-  if ((simppilot = HIGH) && (chargebutton = HIGH))
+  if ((simppilot = HIGH) && (simpprox = HIGH) && (maincontactorsignal = LOW)) // If plugged into charger both should read high, only run if main contactor not closed.
   {
-    digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
     digitalWrite (precharge, HIGH); // close  Battery precharge contactor
-
+    digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
   }
-  if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (chargebutton = HIGH)) //needs pilot signal, HV bus precharged and the charge button pressed before charging starts.
+  if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
   {
     digitalWrite (accontactor, HIGH);
     digitalWrite (maincontactor, HIGH);
+    digitalWrite (precharge, LOW);
     digitalWrite (csdn, LOW);
 
   }
-  else
-  {
-    digitalWrite (csdn, HIGH);
-    digitalWrite (accontactor, LOW);
-    digitalWrite (chargestart, LOW);
+/// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
+  
 
-  }
 }
 
 
 void loop() {
-  Can0.events();
-  closecontactor(); //checks precharge level and close contactor
-  charging();
-  coolant(); // check coolant temperature and swtich on engine bay fan if needed.
-  gauges(); //send information to guages
+  if (opmode = 1)
+  {
+    Can0.events();
+    closecontactor(); //checks precharge level and close contactor
+    coolant(); // check coolant temperature and swtich on engine bay fan if needed.
+    gauges(); //send information to guages
+  }
+  else
+  {
+    Can0.events();
+    charging();
+    gauges(); //send information to guages
+  }
+  /// To Do
+
+  // Interupt to stop charge.
 
 
 
