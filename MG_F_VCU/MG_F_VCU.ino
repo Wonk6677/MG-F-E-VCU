@@ -52,6 +52,7 @@ int chargebutton = 12;
 int HVbus;
 int HVdiff;
 int Batvolt;
+int Batvoltraw;
 int AuxBattVolt;
 
 // car inputs
@@ -145,16 +146,16 @@ void canSniff1(const CAN_message_t &msg) {
   if (msg.id == 0x3FF)
   {
     HVbus = msg.buf[5];
-    Batvolt = msg.buf[6];
+    Batvoltraw = (( msg.buf[2] << 8) | msg.buf[1]);
+    Batvolt = Batvoltraw / 32;
     rpmraw = (( msg.buf[4] << 8) | msg.buf[3]);
+    Batterysoc = msg.buf[6];
 
   }
   if (msg.id == 0x400)
   {
     AuxBattVolt = msg.buf[0];
   }
-
-  //something from BMS that updates int batterysoc.
 }
 
 void coolant()
