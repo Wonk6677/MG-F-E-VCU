@@ -201,8 +201,6 @@ void closecontactor() { //--------contactor close cycle
     digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
-  //to do. work with charging.
-
 }
 
 void gauges() {
@@ -232,7 +230,8 @@ void gauges() {
 
   //To Do
 
-  // temperature from motor
+  // temperature from coolant.
+  
 
 }
 
