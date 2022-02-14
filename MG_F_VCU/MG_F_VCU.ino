@@ -55,7 +55,7 @@ int Batvolt;
 int Batvoltraw;
 int AuxBattVolt;
 
-int opmode;
+bool chargemode;
 
 // car inputs
 int Batterysoc;
@@ -131,7 +131,7 @@ void setup() {
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
     digitalWrite(csdn, LOW);
     Serial.print("normal startup");
-    opmode = 0;
+    chargemode = false;
 
   }
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
@@ -142,7 +142,7 @@ void setup() {
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
     Serial.print("charge port connected");
-    opmode = 1;
+    chargemode = true;
   }
   delay(3000);
 }
@@ -262,7 +262,7 @@ void charging() {
 
 
 void loop() {
-  if (opmode = 1)
+  if (chargemode = false)
   {
     Can0.events();
     closecontactor(); //checks precharge level and close contactor
