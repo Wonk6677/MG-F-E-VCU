@@ -72,12 +72,12 @@ void setup() {
   for (int i = NUM_RX_MAILBOXES; i < (NUM_TX_MAILBOXES + NUM_RX_MAILBOXES); i++) {
     Can0.setMB(i, TX, STD);
   }
-  Can0.setMBFilter(REJECT_ALL);
+  //  Can0.setMBFilter(REJECT_ALL);
   Can0.enableMBInterrupts();
-  Can0.setMBFilterProcessing(MB0, 0x3FF, 0xFF);
+  //  Can0.setMBFilterProcessing(MB0, 0x3FF, 0xFF);
   //Can0.setMBFilterProcessing(MB1,0x400, 0xFF);
   //Can0.setMBFilterProcessing(MB2,0x0B,0xFF);
-  Can0.enhanceFilter(MB0);
+  // Can0.enhanceFilter(MB0);
   //Can0.enhanceFilter(MB1);
   Can0.onReceive(MB0, canSniff1);
   //Can0.onReceive(MB1,canSniff2);
@@ -193,10 +193,13 @@ void coolant()
 void closecontactor() { //--------contactor close cycle
   // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
   HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
-  digitalRead (maincontactorsignal);
-  if ((maincontactorsignal = HIGH) && ( HVdiff < 10))
+  //// Serial.print (HVdiff);
+  if (digitalRead (maincontactorsignal))  ////&& ( HVdiff < 10))
   {
+  }
+  else {
     digitalWrite (maincontactor, HIGH);
+    Serial.print ("main contactor shut      ");
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
     digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
@@ -231,18 +234,18 @@ void gauges() {
   //To Do
 
   // temperature from coolant.
-  
+
 
 }
-
-void charging() {
+/*
+  void charging() {
   //--------Charge process Not done yet
   digitalRead (simppilot);
   digitalRead (simpprox);
   //digitalRead (chargebutton);
   digitalRead (maincontactorsignal); // main contactor close signal from OI control board
 
-  if ((simppilot = HIGH) && (simpprox = HIGH) && (maincontactorsignal = LOW)) // If plugged into charger both should read high, only run if main contactor not closed.
+  if ((simppilot = LOW) && (simpprox = LOW) && (maincontactorsignal = HIGH)) // If plugged into charger both should read high, only run if main contactor not closed.
   {
     digitalWrite (precharge, HIGH); // close  Battery precharge contactor
     digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
@@ -255,30 +258,30 @@ void charging() {
     digitalWrite (csdn, LOW);
 
   }
-/// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
-  
+  /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
 
-}
 
+  }
+*/
 
 void loop() {
-  if (chargemode = false)
-  {
-    Can0.events();
-    closecontactor(); //checks precharge level and close contactor
-    coolant(); // check coolant temperature and swtich on engine bay fan if needed.
-    gauges(); //send information to guages
-  }
-  else
-  {
-    Can0.events();
-    charging();
-    gauges(); //send information to guages
-  }
-  /// To Do
+  //if ((chargemode = false))
+  //{
+  Can0.events();
+  closecontactor(); //checks precharge level and close contactor
+  coolant(); // check coolant temperature and swtich on engine bay fan if needed.
+  gauges(); //send information to guages
+  /* }
+    else
+    {
+     Can0.events();
+     charging();
+     gauges(); //send information to guages
+    }
+    /// To Do
 
-  // Interupt to stop charge.
-
+    // Interupt to stop charge.
+  */
 
 
 }
