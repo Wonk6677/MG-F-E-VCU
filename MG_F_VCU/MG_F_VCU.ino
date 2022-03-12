@@ -38,6 +38,7 @@ float c1 = 0.9818585903e-03, c2 = 1.995199371e-04, c3 = 1.684445298e-07;
 int maincontactorsignal = 20;
 int precharge = 22;
 int maincontactor = 21;
+int maincontactorsingalvalue = 1;
 
 //Charging
 int cpwm = 24;
@@ -55,7 +56,7 @@ int Batvolt;
 int Batvoltraw;
 int AuxBattVolt;
 
-bool chargemode;
+int chargemode;
 
 // car inputs
 int Batterysoc;
@@ -117,7 +118,7 @@ void setup() {
   digitalWrite (startbutton, HIGH);
   delay(500);
   digitalWrite (startbutton, LOW);
-
+  chargemode = 0;
 
   delay(3000);
 
@@ -129,20 +130,19 @@ void setup() {
     digitalWrite (precharge, HIGH);   //activate prehcharge on start up
     analogWrite(rpm, 128);
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
-    digitalWrite(csdn, LOW);
+    //digitalWrite(csdn, LOW);
     Serial.print("normal startup");
-    chargemode = false;
+    chargemode = 1;
 
   }
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
-    //Also send canbus message to inverter to set forward and reverse at same time to enable charge mode
-    digitalWrite(csdn, HIGH);
-    digitalWrite(cpwm, HIGH);
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
+    digitalWrite(csdn, HIGH);
+    digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
-    chargemode = true;
+    chargemode = 2;
   }
   delay(3000);
 }
@@ -167,7 +167,6 @@ void coolant()
 {
   if (coolanttimer.check()) {
     //---------Temperature read
-
 
     Vo = analogRead(ThermistorPin); /// use 10k resistor
     R2 = R1 * (1023.0 / (float)Vo - 1.0);
@@ -194,15 +193,22 @@ void closecontactor() { //--------contactor close cycle
   // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
   HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
   //// Serial.print (HVdiff);
-  if (digitalRead (maincontactorsignal))  ////&& ( HVdiff < 10))
+  digitalRead(maincontactorsignal);
+  maincontactorsingalvalue = digitalRead(maincontactorsignal);
+  Serial.print (maincontactorsingalvalue);
+  if (maincontactorsingalvalue == 0)  ////&& ( HVdiff < 10))
   {
-  }
-  else {
     digitalWrite (maincontactor, HIGH);
-    Serial.print ("main contactor shut      ");
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
     digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
+  }
+  else
+  {
+    digitalWrite (maincontactor, LOW);
+    analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+    digitalWrite (dcdcon, LOW);
+    digitalWrite (precharge, HIGH);
   }
 }
 
@@ -237,51 +243,59 @@ void gauges() {
 
 
 }
-/*
-  void charging() {
+
+void charging() {
   //--------Charge process Not done yet
   digitalRead (simppilot);
   digitalRead (simpprox);
+  int simpproxvalue = digitalRead(simpprox);
+  int simppilotvalue = digitalRead(simppilot);
+  maincontactorsingalvalue = digitalRead(maincontactorsignal);
   //digitalRead (chargebutton);
   digitalRead (maincontactorsignal); // main contactor close signal from OI control board
 
-  if ((simppilot = LOW) && (simpprox = LOW) && (maincontactorsignal = HIGH)) // If plugged into charger both should read high, only run if main contactor not closed.
+
+  if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 1) // If plugged into charger both should read high, only run if main contactor not closed.
   {
-    digitalWrite (precharge, HIGH); // close  Battery precharge contactor
+   // digitalWrite (precharge, HIGH); // close  Battery precharge contactor
     digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
+    Serial.print("charge precarghe");
   }
-  if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
-  {
-    digitalWrite (accontactor, HIGH);
-    digitalWrite (maincontactor, HIGH);
-    digitalWrite (precharge, LOW);
-    digitalWrite (csdn, LOW);
+  else {
+
+    if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
+    {
+ digitalWrite (accontactor, HIGH);
+      digitalWrite (maincontactor, HIGH);
+      digitalWrite (precharge, LOW);
+      //digitalWrite (csdn, LOW);
+      Serial.print("start charging");
+    }
+    /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
+
 
   }
-  /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
+}
 
-
-  }
-*/
 
 void loop() {
-  //if ((chargemode = false))
-  //{
-  Can0.events();
-  closecontactor(); //checks precharge level and close contactor
-  coolant(); // check coolant temperature and swtich on engine bay fan if needed.
-  gauges(); //send information to guages
-  /* }
-    else
-    {
-     Can0.events();
-     charging();
-     gauges(); //send information to guages
-    }
-    /// To Do
+  if (chargemode == 1)
+  {
+    Can0.events();
+    closecontactor(); //checks precharge level and close contactor
+    coolant(); // check coolant temperature and swtich on engine bay fan if needed.
+    gauges(); //send information to guages
+  }
+  else if (chargemode == 2)
+  {
+    Can0.events();
+    charging();
+    gauges(); //send information to guages
+  }
+  /// To Do
 
-    // Interupt to stop charge.
-  */
+  // Interupt to stop charge.
+
 
 
 }
