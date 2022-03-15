@@ -130,6 +130,7 @@ void setup() {
     analogWrite(rpm, 128);
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
     digitalWrite(csdn, LOW);
+    digitalWrite(fwd, HIGH);
     Serial.print("normal startup");
     chargemode = false;
 
@@ -192,15 +193,19 @@ void coolant()
 
 void closecontactor() { //--------contactor close cycle
   // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
-  HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
+  //HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
   digitalRead (maincontactorsignal);
-  if ((maincontactorsignal = HIGH) && ( HVdiff < 10))
+  if (maincontactorsignal = HIGH) //
   {
     digitalWrite (maincontactor, HIGH);
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
     digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
+  else
+    digitalWrite (maincontactor, LOW);
+  digitalWrite (dcdcon, LOW);
+  digitalWrite (precharge, HIGH);
 }
 
 void gauges() {
@@ -231,7 +236,7 @@ void gauges() {
   //To Do
 
   // temperature from coolant.
-  
+
 
 }
 
@@ -247,19 +252,23 @@ void charging() {
     digitalWrite (precharge, HIGH); // close  Battery precharge contactor
     digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
   }
-  if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
+  else if ((simppilot = HIGH) && (maincontactorsignal = HIGH) && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
   {
     digitalWrite (accontactor, HIGH);
     digitalWrite (maincontactor, HIGH);
     digitalWrite (precharge, LOW);
     digitalWrite (csdn, LOW);
-
   }
-/// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
+  else {
+    digitalWrite (csdn, HIGH);
+    digitalWrite (accontactor, LOW);
+  }
+
+    /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
+
+
   
-
 }
-
 
 void loop() {
   if (chargemode = false)
