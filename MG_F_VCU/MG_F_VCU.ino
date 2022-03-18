@@ -113,11 +113,12 @@ void setup() {
   //Switch off contactors on startup
   digitalWrite (precharge, LOW);
   digitalWrite (maincontactor, LOW);
-
+  digitalWrite (accontactor, LOW);
+  
   // send momentary start signal to OI board.
   digitalWrite (startbutton, HIGH);
-  delay(500);
-  digitalWrite (startbutton, LOW);
+  // delay(500);
+  //  digitalWrite (startbutton, LOW);
   chargemode = 0;
 
   delay(3000);
@@ -131,6 +132,7 @@ void setup() {
     analogWrite(rpm, 128);
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
     //digitalWrite(csdn, LOW);
+    digitalWrite(fwd, HIGH);
     Serial.print("normal startup");
     chargemode = 1;
 
@@ -139,6 +141,7 @@ void setup() {
   {
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
+    delay (1000);
     digitalWrite(csdn, HIGH);
     digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
@@ -195,15 +198,15 @@ void closecontactor() { //--------contactor close cycle
   //// Serial.print (HVdiff);
   digitalRead(maincontactorsignal);
   maincontactorsingalvalue = digitalRead(maincontactorsignal);
-  Serial.print (maincontactorsingalvalue);
-  if (maincontactorsingalvalue == 0)  ////&& ( HVdiff < 10))
+  //Serial.print (maincontactorsingalvalue);
+  if (maincontactorsingalvalue == 0)
   {
     digitalWrite (maincontactor, HIGH);
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
     digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
-  else
+  else if (maincontactorsingalvalue == 1)
   {
     digitalWrite (maincontactor, LOW);
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
@@ -245,6 +248,7 @@ void gauges() {
 }
 
 void charging() {
+
   //--------Charge process Not done yet
   digitalRead (simppilot);
   digitalRead (simpprox);
@@ -265,11 +269,15 @@ void charging() {
 
     if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
     {
- digitalWrite (accontactor, HIGH);
       digitalWrite (maincontactor, HIGH);
+      digitalWrite (accontactor, HIGH);
+      digitalWrite (csdn, LOW);
       digitalWrite (precharge, LOW);
-      //digitalWrite (csdn, LOW);
       Serial.print("start charging");
+    }
+
+    else {
+      digitalWrite (chargestart, LOW);
     }
     /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
 
