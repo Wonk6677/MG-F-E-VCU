@@ -114,11 +114,12 @@ void setup() {
   digitalWrite (precharge, LOW);
   digitalWrite (maincontactor, LOW);
   digitalWrite (accontactor, LOW);
-  
+
   // send momentary start signal to OI board.
   digitalWrite (startbutton, HIGH);
-  // delay(500);
-  //  digitalWrite (startbutton, LOW);
+  digitalWrite(cpwm, LOW);
+  // delay(1000);
+  //digitalWrite (startbutton, LOW);
   chargemode = 0;
 
   delay(3000);
@@ -147,7 +148,7 @@ void setup() {
     Serial.print("charge port connected");
     chargemode = 2;
   }
-  delay(3000);
+  delay(10000);
 }
 
 void canSniff1(const CAN_message_t &msg) {
@@ -261,19 +262,24 @@ void charging() {
 
   if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 1) // If plugged into charger both should read high, only run if main contactor not closed.
   {
-   // digitalWrite (precharge, HIGH); // close  Battery precharge contactor
+    digitalWrite (precharge, HIGH); // close  Battery precharge contactor
     digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
-    Serial.print("charge precarghe");
+
+    //Serial.print(maincontactorsingalvalue);
   }
   else {
 
     if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
     {
-      digitalWrite (maincontactor, HIGH);
+      //digitalWrite (maincontactor, HIGH);
       digitalWrite (accontactor, HIGH);
-      digitalWrite (csdn, LOW);
-      digitalWrite (precharge, LOW);
-      Serial.print("start charging");
+     //digitalWrite (csdn, LOW);
+      digitalWrite (precharge, HIGH);
+      digitalWrite (dcdcon, HIGH);
+      digitalWrite(dcdccontrol, LOW);
+      //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+
+      //Serial.print(maincontactorsingalvalue);
     }
 
     else {
