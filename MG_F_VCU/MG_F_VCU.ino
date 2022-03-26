@@ -129,26 +129,29 @@ void setup() {
   digitalRead (simpprox);
   if (digitalRead(simpprox)) // run normal start up
   {
-    digitalWrite (precharge, HIGH);   //activate prehcharge on start up
-    analogWrite(rpm, 128);
-    analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
-    //digitalWrite(csdn, LOW);
-    digitalWrite(fwd, HIGH);
-    Serial.print("normal startup");
-    chargemode = 1;
+     digitalWrite (precharge, HIGH);   //activate prehcharge on start up
+      analogWrite(rpm, 128);
+      analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
+      //digitalWrite(csdn, LOW);
+      digitalWrite(fwd, HIGH);
+      Serial.print("normal startup");
+      chargemode = 1;
 
+    
   }
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
-    digitalWrite(fwd, HIGH);
-    digitalWrite(rev, HIGH);
-    delay (1000);
-    digitalWrite(csdn, HIGH);
-    digitalWrite(cpwm, HIGH);
-    Serial.print("charge port connected");
-    chargemode = 2;
+
+      digitalWrite(fwd, HIGH);
+      digitalWrite(rev, HIGH);
+      delay (1000);
+      digitalWrite(csdn, HIGH);
+      digitalWrite(cpwm, HIGH);
+      Serial.print("charge port connected");
+      chargemode = 2;
+  
   }
-  delay(10000);
+  delay(1000);
 }
 
 void canSniff1(const CAN_message_t &msg) {
@@ -260,26 +263,26 @@ void charging() {
   digitalRead (maincontactorsignal); // main contactor close signal from OI control board
 
 
-  if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 1) // If plugged into charger both should read high, only run if main contactor not closed.
+  if (/*simpproxvalue == 0 && simppilotvalue == 0 &&*/ maincontactorsingalvalue == 1) // If plugged into charger both should read high, only run if main contactor not closed.
   {
-    digitalWrite (precharge, HIGH); // close  Battery precharge contactor
+    //digitalWrite (precharge, HIGH); // close  Battery precharge contactor
     digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
 
     //Serial.print(maincontactorsingalvalue);
   }
   else {
 
-    if (simpproxvalue == 0 && simppilotvalue == 0 && maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
+    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
     {
-      //digitalWrite (maincontactor, HIGH);
+      digitalWrite (maincontactor, HIGH);
       digitalWrite (accontactor, HIGH);
-     //digitalWrite (csdn, LOW);
-      digitalWrite (precharge, HIGH);
+      digitalWrite (csdn, LOW);
+      digitalWrite (precharge, LOW);
       digitalWrite (dcdcon, HIGH);
       digitalWrite(dcdccontrol, LOW);
       //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
 
-      //Serial.print(maincontactorsingalvalue);
+     // Serial.print(maincontactorsingalvalue);
     }
 
     else {
