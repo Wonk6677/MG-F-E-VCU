@@ -55,6 +55,8 @@ int HVdiff;
 int Batvolt;
 int Batvoltraw;
 int AuxBattVolt;
+int Batmax;
+int Batmaxraw;
 
 int chargemode;
 
@@ -129,27 +131,27 @@ void setup() {
   digitalRead (simpprox);
   if (digitalRead(simpprox)) // run normal start up
   {
-     digitalWrite (precharge, HIGH);   //activate prehcharge on start up
-      analogWrite(rpm, 128);
-      analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
-      //digitalWrite(csdn, LOW);
-      digitalWrite(fwd, HIGH);
-      Serial.print("normal startup");
-      chargemode = 1;
+    digitalWrite (precharge, HIGH);   //activate prehcharge on start up
+    analogWrite(rpm, 128);
+    analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
+    //digitalWrite(csdn, LOW);
+    digitalWrite(fwd, HIGH);
+    Serial.print("normal startup");
+    chargemode = 1;
 
-    
+
   }
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
 
-      digitalWrite(fwd, HIGH);
-      digitalWrite(rev, HIGH);
-      delay (1000);
-      digitalWrite(csdn, HIGH);
-      digitalWrite(cpwm, HIGH);
-      Serial.print("charge port connected");
-      chargemode = 2;
-  
+    digitalWrite(fwd, HIGH);
+    digitalWrite(rev, HIGH);
+    delay (1000);
+    digitalWrite(csdn, HIGH);
+    digitalWrite(cpwm, HIGH);
+    Serial.print("charge port connected");
+    chargemode = 2;
+
   }
   delay(1000);
 }
@@ -157,17 +159,25 @@ void setup() {
 void canSniff1(const CAN_message_t &msg) {
   if (msg.id == 0x3FF)
   {
-    HVbus = msg.buf[5];
+    HVbus = (( msg.buf[6] << 8) | msg.buf[5]);
+    HVbus = HVbus / 32;
     Batvoltraw = (( msg.buf[2] << 8) | msg.buf[1]);
     Batvolt = Batvoltraw / 32;
     rpmraw = (( msg.buf[4] << 8) | msg.buf[3]);
-    Batterysoc = msg.buf[6];
-
+    Batterysoc = msg.buf[7];
+    
   }
   if (msg.id == 0x400)
   {
     AuxBattVolt = msg.buf[0];
   }
+   if (msg.id == 0x3FD)
+  {
+    Batmaxraw = (( msg.buf[1] << 8) | msg.buf[0]);
+    Batmax = Batmaxraw;
+    
+  }
+
 }
 
 void coolant()
@@ -203,7 +213,7 @@ void closecontactor() { //--------contactor close cycle
   digitalRead(maincontactorsignal);
   maincontactorsingalvalue = digitalRead(maincontactorsignal);
   //Serial.print (maincontactorsingalvalue);
-  if (maincontactorsingalvalue == 0)
+  if (maincontactorsingalvalue == 0 & HVdiff < 10)
   {
     digitalWrite (maincontactor, HIGH);
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
@@ -272,7 +282,7 @@ void charging() {
   }
   else {
 
-    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
+    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100 & maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
     {
       digitalWrite (maincontactor, HIGH);
       digitalWrite (accontactor, HIGH);
@@ -282,7 +292,7 @@ void charging() {
       digitalWrite(dcdccontrol, LOW);
       //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
 
-     // Serial.print(maincontactorsingalvalue);
+      // Serial.print(maincontactorsingalvalue);
     }
 
     else {
