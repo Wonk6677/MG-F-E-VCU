@@ -209,11 +209,11 @@ void coolant()
 void closecontactor() { //--------contactor close cycle
   // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
   HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
-  //// Serial.print (HVdiff);
+  //Serial.print (HVdiff);
   digitalRead(maincontactorsignal);
   maincontactorsingalvalue = digitalRead(maincontactorsignal);
-  //Serial.print (maincontactorsingalvalue);
-  if (maincontactorsingalvalue == 0 & HVdiff < 10)
+ // Serial.print (maincontactorsingalvalue);
+  if (maincontactorsingalvalue == 0)// & HVdiff < 10)
   {
     digitalWrite (maincontactor, HIGH);
     analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
