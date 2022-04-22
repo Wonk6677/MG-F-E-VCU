@@ -6,6 +6,8 @@ FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
 
 //////timers
 Metro coolanttimer = Metro(1000);
+Metro chargerEVSE = Metro(100);
+Metro charger800 = Metro(800);
 
 //OI inputs
 int startbutton = 13;
@@ -117,11 +119,6 @@ void setup() {
   digitalWrite (maincontactor, LOW);
   digitalWrite (accontactor, LOW);
 
-  // send momentary start signal to OI board.
-  digitalWrite (startbutton, HIGH);
-  digitalWrite(cpwm, LOW);
-  // delay(1000);
-  //digitalWrite (startbutton, LOW);
   chargemode = 0;
 
   delay(3000);
@@ -131,6 +128,7 @@ void setup() {
   digitalRead (simpprox);
   if (digitalRead(simpprox)) // run normal start up
   {
+    digitalWrite (startbutton, HIGH);
     digitalWrite (precharge, HIGH);   //activate prehcharge on start up
     analogWrite(rpm, 128);
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
@@ -144,11 +142,11 @@ void setup() {
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
 
-    digitalWrite(fwd, HIGH);
-    digitalWrite(rev, HIGH);
+    //digitalWrite(fwd, HIGH);
+    //digitalWrite(rev, HIGH);
     delay (1000);
-    digitalWrite(csdn, HIGH);
-    digitalWrite(cpwm, HIGH);
+    //digitalWrite(csdn, HIGH);
+    // digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
     chargemode = 2;
 
@@ -165,17 +163,17 @@ void canSniff1(const CAN_message_t &msg) {
     Batvolt = Batvoltraw / 32;
     rpmraw = (( msg.buf[4] << 8) | msg.buf[3]);
     Batterysoc = msg.buf[7];
-    
+
   }
   if (msg.id == 0x400)
   {
     AuxBattVolt = msg.buf[0];
   }
-   if (msg.id == 0x3FD)
+  if (msg.id == 0x3FD)
   {
     Batmaxraw = (( msg.buf[1] << 8) | msg.buf[0]);
     Batmax = Batmaxraw;
-    
+
   }
 
 }
@@ -208,11 +206,11 @@ void coolant()
 
 void closecontactor() { //--------contactor close cycle
   // if hv bus is within a few volts of battery voltage and OI is sending close main contactor, close main contactor and open precharge. Also activate dc-dc
-  HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
+  //HVdiff = Batvolt - HVbus; //calculates difference between battery voltage and HV bus
   //Serial.print (HVdiff);
   digitalRead(maincontactorsignal);
   maincontactorsingalvalue = digitalRead(maincontactorsignal);
- // Serial.print (maincontactorsingalvalue);
+  // Serial.print (maincontactorsingalvalue);
   if (maincontactorsingalvalue == 0)// & HVdiff < 10)
   {
     digitalWrite (maincontactor, HIGH);
@@ -262,46 +260,47 @@ void gauges() {
 }
 
 void charging() {
-
-  //--------Charge process Not done yet
-  digitalRead (simppilot);
-  digitalRead (simpprox);
-  int simpproxvalue = digitalRead(simpprox);
-  int simppilotvalue = digitalRead(simppilot);
-  maincontactorsingalvalue = digitalRead(maincontactorsignal);
-  //digitalRead (chargebutton);
-  digitalRead (maincontactorsignal); // main contactor close signal from OI control board
-
-
-  if (/*simpproxvalue == 0 && simppilotvalue == 0 &&*/ maincontactorsingalvalue == 1) // If plugged into charger both should read high, only run if main contactor not closed.
-  {
-    //digitalWrite (precharge, HIGH); // close  Battery precharge contactor
-    digitalWrite (chargestart, HIGH); // semd signal to simpcharge to send AC voltage
-
-    //Serial.print(maincontactorsingalvalue);
-  }
-  else {
-
-    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100 & maincontactorsingalvalue == 0)// && (Batterysoc < 95)) //needs pilot signal and HV bus precharged before charging starts. Won't start charging past 95% SoC
+  if (chargerEVSE.check()) {
+    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100)
     {
-      digitalWrite (maincontactor, HIGH);
-      digitalWrite (accontactor, HIGH);
-      digitalWrite (csdn, LOW);
-      digitalWrite (precharge, LOW);
-      digitalWrite (dcdcon, HIGH);
-      digitalWrite(dcdccontrol, LOW);
-      //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-
-      // Serial.print(maincontactorsingalvalue);
+    //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
+    CAN_message_t msg1;
+    msg1.id = (0x285);
+   // memcpy (msg1.buf, evse, 8);
+    msg1.buf[2] = 0xB6;
+    Can0.write(msg1);
     }
-
-    else {
-      digitalWrite (chargestart, LOW);
+    else
+    {
+    CAN_message_t msg1;
+    msg1.id = (0x285);
+   // memcpy (msg1.buf, evse, 8);
+    msg1.buf[2] = 0x00;
+    Can0.write(msg1);
     }
-    /// Might need to add in highest cell voltage to BMS Canbus and cut off when that is reached instead.
-
-
   }
+
+if (charger800.check()) {
+  unsigned char charger800[8] = {0x28, 0x0F, 0x00, 0x37, 0x00, 0x00, 0x0A, 0x00};
+ CAN_message_t msg1;
+    msg1.id = (0x286);
+    memcpy (msg1.buf, charger800, 8);
+    msg1.buf[2] = 0x1E;
+    Can0.write(msg1);
+
+
+}
+  /*
+    //--------Charge process Not done yet
+    digitalRead (simppilot);
+    digitalRead (simpprox);
+    int simpproxvalue = digitalRead(simpprox);
+    int simppilotvalue = digitalRead(simppilot);
+    maincontactorsingalvalue = digitalRead(maincontactorsignal);
+    //digitalRead (chargebutton);
+    digitalRead (maincontactorsignal); // main contactor close signal from OI control board
+  */
+
 }
 
 
