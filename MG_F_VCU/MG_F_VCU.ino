@@ -1,8 +1,9 @@
 #include <FlexCAN_T4.h>
 #include <Metro.h>
 FlexCAN_T4<CAN0, RX_SIZE_256, TX_SIZE_16> Can0;
-#define NUM_TX_MAILBOXES 2
+#define NUM_TX_MAILBOXES 6
 #define NUM_RX_MAILBOXES 6
+CAN_message_t msg;
 
 //////timers
 Metro coolanttimer = Metro(1000);
@@ -263,33 +264,42 @@ void charging() {
   if (chargerEVSE.check()) {
     if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100)
     {
-    //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
-    CAN_message_t msg1;
-    msg1.id = (0x285);
-   // memcpy (msg1.buf, evse, 8);
-    msg1.buf[2] = 0xB6;
-    Can0.write(msg1);
+      //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
+      CAN_message_t msg1;
+      msg1.id = (0x285);
+      msg1.len = 8;
+      msg1.buf[0] = 0;
+      msg1.buf[1] = 0;
+      msg1.buf[2] = 0xB6;
+      msg1.buf[3] = 0;
+      msg1.buf[4] = 0;
+      msg1.buf[5] = 0;
+      msg1.buf[6] = 0;
+      msg1.buf[7] = 0;
+      Can0.write(msg1);
+      Serial.print(msg1.buf[2]);
     }
     else
     {
-    CAN_message_t msg1;
-    msg1.id = (0x285);
-   // memcpy (msg1.buf, evse, 8);
-    msg1.buf[2] = 0x00;
-    Can0.write(msg1);
+      CAN_message_t msg1;
+      msg1.id = (0x285);
+      msg1.len = 8;
+      // memcpy (msg1.buf, evse, 8);
+      msg1.buf[2] = 0x00;
+      Can0.write(msg1);
     }
   }
 
-if (charger800.check()) {
-  unsigned char charger800[8] = {0x28, 0x0F, 0x00, 0x37, 0x00, 0x00, 0x0A, 0x00};
- CAN_message_t msg1;
+  if (charger800.check()) {
+    unsigned char charger800[8] = {0x28, 0x0F, 0x00, 0x37, 0x00, 0x00, 0x0A, 0x00};
+    CAN_message_t msg1;
     msg1.id = (0x286);
     memcpy (msg1.buf, charger800, 8);
     msg1.buf[2] = 0x1E;
     Can0.write(msg1);
 
 
-}
+  }
   /*
     //--------Charge process Not done yet
     digitalRead (simppilot);
@@ -308,7 +318,8 @@ void loop() {
   if (chargemode == 1)
   {
     Can0.events();
-    closecontactor(); //checks precharge level and close contactor
+    charging();
+    // closecontactor(); //checks precharge level and close contactor
     coolant(); // check coolant temperature and swtich on engine bay fan if needed.
     gauges(); //send information to guages
   }
