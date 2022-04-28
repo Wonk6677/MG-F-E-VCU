@@ -44,13 +44,13 @@ int maincontactor = 21;
 int maincontactorsingalvalue = 1;
 
 //Charging
-int cpwm = 24;
-int csdn = 25;
-int accontactor = 32;
+//int cpwm = 24;
+//int csdn = 25;
+int negcontactor = 32;
 int simpprox = 26;
 int simppilot = 27;
-int chargestart = 28;
-int chargebutton = 12;
+int chargestart = 28; // use for DC-DC pn charger?
+//int chargebutton = 12;
 
 //HV stuff
 int HVbus;
@@ -100,9 +100,9 @@ void setup() {
   pinMode(dcdccontrol, OUTPUT);
   pinMode(dcdcon, OUTPUT);
   pinMode(chargestart, OUTPUT);
-  pinMode(cpwm, OUTPUT);
-  pinMode(csdn, OUTPUT);
-  pinMode(accontactor, OUTPUT);
+  //pinMode(cpwm, OUTPUT);
+  // pinMode(csdn, OUTPUT);
+  pinMode(negcontactor, OUTPUT);
   pinMode(startbutton, OUTPUT);
   pinMode(fwd, OUTPUT);
   pinMode(rev, OUTPUT);
@@ -118,7 +118,7 @@ void setup() {
   //Switch off contactors on startup
   digitalWrite (precharge, LOW);
   digitalWrite (maincontactor, LOW);
-  digitalWrite (accontactor, LOW);
+  digitalWrite (negcontactor, LOW);
 
   chargemode = 0;
 
@@ -143,14 +143,13 @@ void setup() {
   else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
   {
 
-    //digitalWrite(fwd, HIGH);
-    //digitalWrite(rev, HIGH);
+    digitalWrite(fwd, HIGH);
+    digitalWrite(rev, HIGH);
     delay (1000);
     //digitalWrite(csdn, HIGH);
-    // digitalWrite(cpwm, HIGH);
+    //digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
     chargemode = 2;
-
   }
   delay(1000);
 }
@@ -215,15 +214,16 @@ void closecontactor() { //--------contactor close cycle
   if (maincontactorsingalvalue == 0)// & HVdiff < 10)
   {
     digitalWrite (maincontactor, HIGH);
-    analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-    digitalWrite (dcdcon, HIGH);
+    //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+   // digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
   else if (maincontactorsingalvalue == 1)
   {
     digitalWrite (maincontactor, LOW);
-    analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-    digitalWrite (dcdcon, LOW);
+    digitalWrite (negcontactor, HIGH);
+   // analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+   // digitalWrite (dcdcon, LOW);
     digitalWrite (precharge, HIGH);
   }
 }
@@ -261,7 +261,7 @@ void gauges() {
 }
 
 void charging() {
-  if (chargerEVSE.check()) {
+  if (chargerEVSE.check()) { //100ms timer to send canbus messages
     if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100)
     {
       //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -277,7 +277,6 @@ void charging() {
       msg1.buf[6] = 0;
       msg1.buf[7] = 0;
       Can0.write(msg1);
-      Serial.print(msg1.buf[2]);
     }
     else
     {
@@ -318,8 +317,7 @@ void loop() {
   if (chargemode == 1)
   {
     Can0.events();
-    charging();
-    // closecontactor(); //checks precharge level and close contactor
+    closecontactor(); //checks precharge level and close contactor
     coolant(); // check coolant temperature and swtich on engine bay fan if needed.
     gauges(); //send information to guages
   }
