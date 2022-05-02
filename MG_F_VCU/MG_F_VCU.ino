@@ -130,6 +130,7 @@ void setup() {
   if (digitalRead(simpprox)) // run normal start up
   {
     digitalWrite (startbutton, HIGH);
+    digitalWrite (negcontactor, HIGH);
     digitalWrite (precharge, HIGH);   //activate prehcharge on start up
     analogWrite(rpm, 128);
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
@@ -146,6 +147,7 @@ void setup() {
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
     delay (1000);
+    digitalWrite (negcontactor, HIGH);
     //digitalWrite(csdn, HIGH);
     //digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
