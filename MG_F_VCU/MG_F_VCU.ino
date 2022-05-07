@@ -25,7 +25,7 @@ float rpmraw;
 int batterylight = 31;
 
 int dcdcon = 2;
-int dcdccontrol = 23;
+//int dcdccontrol = 23; // 5v signal wire, not used
 
 //coolant temp and engine bay fan
 
@@ -44,13 +44,13 @@ int maincontactor = 21;
 int maincontactorsingalvalue = 1;
 
 //Charging
-//int cpwm = 24;
-//int csdn = 25;
+//int cpwm = 24; 12v signal not used
+//int csdn = 25; 12v signal not used
 int negcontactor = 32;
 int simpprox = 26;
-int simppilot = 27;
+//int simppilot = 27; grounded input not used
 int chargestart = 28; // use for DC-DC pn charger?
-//int chargebutton = 12;
+//int chargebutton = 12; 12v sinal not used
 
 //HV stuff
 int HVbus;
@@ -141,15 +141,13 @@ void setup() {
 
 
   }
-  else ///put CPWM and CSDN to High and enable charge mode, disabling drive.
+  else //
   {
 
     digitalWrite(fwd, HIGH);
     digitalWrite(rev, HIGH);
     delay (1000);
     digitalWrite (negcontactor, HIGH);
-    //digitalWrite(csdn, HIGH);
-    //digitalWrite(cpwm, HIGH);
     Serial.print("charge port connected");
     chargemode = 2;
   }
