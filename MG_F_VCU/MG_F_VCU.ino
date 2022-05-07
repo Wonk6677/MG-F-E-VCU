@@ -111,7 +111,7 @@ void setup() {
   //inputs
   pinMode(simpprox, INPUT_PULLUP);
   pinMode(simppilot, INPUT_PULLUP);
-  pinMode(chargebutton, INPUT_PULLUP);
+  // pinMode(chargebutton, INPUT_PULLUP);
   pinMode(maincontactorsignal, INPUT_PULLUP);
 
 
@@ -217,15 +217,15 @@ void closecontactor() { //--------contactor close cycle
   {
     digitalWrite (maincontactor, HIGH);
     //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-   // digitalWrite (dcdcon, HIGH);
+    // digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
   else if (maincontactorsingalvalue == 1)
   {
     digitalWrite (maincontactor, LOW);
     digitalWrite (negcontactor, HIGH);
-   // analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-   // digitalWrite (dcdcon, LOW);
+    // analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
+    // digitalWrite (dcdcon, LOW);
     digitalWrite (precharge, HIGH);
   }
 }
@@ -288,17 +288,18 @@ void charging() {
       // memcpy (msg1.buf, evse, 8);
       msg1.buf[2] = 0x00;
       Can0.write(msg1);
+
     }
   }
 
   if (charger800.check()) {
-    unsigned char charger800[8] = {0x28, 0x0F, 0x00, 0x37, 0x00, 0x00, 0x0A, 0x00};
+    unsigned char charger800[8] = {0x28, 0x0F, 0x78, 0x37, 0x00, 0x00, 0x0A, 0x00};
     CAN_message_t msg1;
     msg1.id = (0x286);
     memcpy (msg1.buf, charger800, 8);
-    msg1.buf[2] = 0x1E;
+    //msg1.buf[2] = 0x78;
     Can0.write(msg1);
-
+    Can0.mailboxStatus();
 
   }
   /*
