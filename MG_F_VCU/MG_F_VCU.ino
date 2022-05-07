@@ -97,20 +97,20 @@ void setup() {
   pinMode(motortempgauge, OUTPUT);
   pinMode(precharge, OUTPUT);
   pinMode(maincontactor, OUTPUT);
-  pinMode(dcdccontrol, OUTPUT);
+  // pinMode(dcdccontrol, OUTPUT);
   pinMode(dcdcon, OUTPUT);
   pinMode(chargestart, OUTPUT);
   //pinMode(cpwm, OUTPUT);
   // pinMode(csdn, OUTPUT);
   pinMode(negcontactor, OUTPUT);
-  pinMode(startbutton, OUTPUT);
+  // pinMode(startbutton, OUTPUT);
   pinMode(fwd, OUTPUT);
   pinMode(rev, OUTPUT);
   pinMode(brake, OUTPUT);
   pinMode(batterylight, OUTPUT);
   //inputs
   pinMode(simpprox, INPUT_PULLUP);
-  pinMode(simppilot, INPUT_PULLUP);
+  //  pinMode(simppilot, INPUT_PULLUP);
   // pinMode(chargebutton, INPUT_PULLUP);
   pinMode(maincontactorsignal, INPUT_PULLUP);
 
@@ -138,6 +138,7 @@ void setup() {
     digitalWrite(fwd, HIGH);
     Serial.print("normal startup");
     chargemode = 1;
+    digitalWrite (dcdcon, HIGH); // only for testing
 
 
   }
@@ -215,7 +216,7 @@ void closecontactor() { //--------contactor close cycle
   {
     digitalWrite (maincontactor, HIGH);
     //analogWriteFrequency(dcdccontrol, 200); //change this number to change dcdc voltage output
-    // digitalWrite (dcdcon, HIGH);
+    digitalWrite (dcdcon, HIGH);
     digitalWrite (precharge, LOW);
   }
   else if (maincontactorsingalvalue == 1)
