@@ -264,7 +264,7 @@ void gauges() {
 
 void charging() {
   if (chargerEVSE.check()) { //100ms timer to send canbus messages
-    if (/*simpproxvalue == 0 && simppilotvalue == 0 && */Batmax < 4100)
+    if (Batmax < 4100) // as long as max cell is under 4100mV, send signal to EVSE.
     {
       //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
       CAN_message_t msg1;
@@ -285,7 +285,6 @@ void charging() {
       CAN_message_t msg1;
       msg1.id = (0x285);
       msg1.len = 8;
-      // memcpy (msg1.buf, evse, 8);
       msg1.buf[2] = 0x00;
       Can0.write(msg1);
 
@@ -297,21 +296,9 @@ void charging() {
     CAN_message_t msg1;
     msg1.id = (0x286);
     memcpy (msg1.buf, charger800, 8);
-    //msg1.buf[2] = 0x78;
     Can0.write(msg1);
-    Can0.mailboxStatus();
 
   }
-  /*
-    //--------Charge process Not done yet
-    digitalRead (simppilot);
-    digitalRead (simpprox);
-    int simpproxvalue = digitalRead(simpprox);
-    int simppilotvalue = digitalRead(simppilot);
-    maincontactorsingalvalue = digitalRead(maincontactorsignal);
-    //digitalRead (chargebutton);
-    digitalRead (maincontactorsignal); // main contactor close signal from OI control board
-  */
 
 }
 
