@@ -138,7 +138,7 @@ void setup() {
     digitalWrite(fwd, HIGH);
     Serial.print("normal startup");
     chargemode = 1;
-    digitalWrite (dcdcon, HIGH); // only for testing
+    
 
 
   }
@@ -278,6 +278,7 @@ void charging() {
       msg1.buf[6] = 0;
       msg1.buf[7] = 0;
       Can0.write(msg1);
+      digitalWrite (dcdcon, HIGH);
     }
     else
     {
@@ -286,6 +287,7 @@ void charging() {
       msg1.len = 8;
       msg1.buf[2] = 0x00;
       Can0.write(msg1);
+      digitalWrite (dcdcon, LOW);
 
     }
   }
@@ -314,6 +316,7 @@ void loop() {
   {
     Can0.events();
     charging();
+    coolant(); // check coolant temperature and swtich on engine bay fan if needed.
     gauges(); //send information to guages
   }
   /// To Do
