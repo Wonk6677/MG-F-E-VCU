@@ -263,7 +263,7 @@ void gauges() {
 
 void charging() {
   if (chargerEVSE.check()) { //100ms timer to send canbus messages
-    if (Batmax < 4100) // as long as max cell is under 4100mV, send signal to EVSE.
+    if (Batmax < 3800) // as long as max cell is under 4100mV, send signal to EVSE.
     {
       //unsigned char evse[8] = {0x00, 0x00, 0xB6, 0x00, 0x00, 0x00, 0x00, 0x00};
       CAN_message_t msg1;
