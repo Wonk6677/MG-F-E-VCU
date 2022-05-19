@@ -45,7 +45,7 @@ int maincontactorsingalvalue = 1;
 
 //Charging
 //int cpwm = 24; 12v signal not used
-//int csdn = 25; 12v signal not used
+int MG2 = 25;// 12v signal
 int negcontactor = 32;
 int simpprox = 26;
 //int simppilot = 27; grounded input not used
@@ -101,7 +101,7 @@ void setup() {
   pinMode(dcdcon, OUTPUT);
   pinMode(chargestart, OUTPUT);
   //pinMode(cpwm, OUTPUT);
-  // pinMode(csdn, OUTPUT);
+  pinMode(MG2, OUTPUT);
   pinMode(negcontactor, OUTPUT);
   // pinMode(startbutton, OUTPUT);
   pinMode(fwd, OUTPUT);
@@ -136,6 +136,7 @@ void setup() {
     analogWriteFrequency(rpm, 2000); //Start rpm at intial high to simulate engine start.Serial.print("normal startup");
     //digitalWrite(csdn, LOW);
     digitalWrite(fwd, HIGH);
+    digitalWrite(MG2, HIGH);
     Serial.print("normal startup");
     chargemode = 1;
 
