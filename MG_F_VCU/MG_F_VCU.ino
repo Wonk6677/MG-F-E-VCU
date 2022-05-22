@@ -154,22 +154,6 @@ void setup() {
     chargemode = 2;
   }
   delay(1000);
-  /* Doesnt work
-    for (int i = 0; i < 9; i++)/// ISA shunt init. As can't fix on Open BMS
-    {
-      CAN_message_t msg1;
-      msg1.id = (0x411);
-      msg1.len = 8;
-      msg1.buf[0] = (0x20 + i);
-      msg1.buf[1] = 0x42;
-      msg1.buf[2] = 0xB6;
-      msg1.buf[3] = 0x02;
-      msg1.buf[4] = (0x60 + (i * 18));
-      msg1.buf[5] = 0;
-      msg1.buf[6] = 0;
-      msg1.buf[7] = 0;
-      Can0.write(msg1);
-    }*/
 }
 
 void canSniff1(const CAN_message_t &msg) {
