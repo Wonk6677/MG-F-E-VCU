@@ -154,45 +154,62 @@ void setup() {
     chargemode = 2;
   }
   delay(1000);
-/* Doesnt work
-  for (int i = 0; i < 9; i++)/// ISA shunt init. As can't fix on Open BMS
-  {
-    CAN_message_t msg1;
-    msg1.id = (0x411);
-    msg1.len = 8;
-    msg1.buf[0] = (0x20 + i);
-    msg1.buf[1] = 0x42;
-    msg1.buf[2] = 0xB6;
-    msg1.buf[3] = 0x02;
-    msg1.buf[4] = (0x60 + (i * 18));
-    msg1.buf[5] = 0;
-    msg1.buf[6] = 0;
-    msg1.buf[7] = 0;
-    Can0.write(msg1);
-  }*/
+  /* Doesnt work
+    for (int i = 0; i < 9; i++)/// ISA shunt init. As can't fix on Open BMS
+    {
+      CAN_message_t msg1;
+      msg1.id = (0x411);
+      msg1.len = 8;
+      msg1.buf[0] = (0x20 + i);
+      msg1.buf[1] = 0x42;
+      msg1.buf[2] = 0xB6;
+      msg1.buf[3] = 0x02;
+      msg1.buf[4] = (0x60 + (i * 18));
+      msg1.buf[5] = 0;
+      msg1.buf[6] = 0;
+      msg1.buf[7] = 0;
+      Can0.write(msg1);
+    }*/
 }
 
 void canSniff1(const CAN_message_t &msg) {
   if (msg.id == 0x3FF)
   {
-    HVbus = (( msg.buf[6] << 8) | msg.buf[5]);
+    HVbus = (( msg.buf[6] << 8) | msg.buf[5]); //Voltage on Prius HVBUS
     HVbus = HVbus / 32;
-    Batvoltraw = (( msg.buf[2] << 8) | msg.buf[1]);
+    Batvoltraw = (( msg.buf[2] << 8) | msg.buf[1]); //OI BMS Battery voltage
     Batvolt = Batvoltraw / 32;
-    rpmraw = (( msg.buf[4] << 8) | msg.buf[3]);
+    rpmraw = (( msg.buf[4] << 8) | msg.buf[3]); //Prius motor rpm
     Batterysoc = msg.buf[7];
 
   }
   if (msg.id == 0x400)
   {
-    AuxBattVolt = msg.buf[0];
+    AuxBattVolt = msg.buf[0]; //Prius aux voltage
   }
-  if (msg.id == 0x3FD)
+  if (msg.id == 0x3FD) // OI BMS
   {
     Batmaxraw = (( msg.buf[1] << 8) | msg.buf[0]);
     Batmax = Batmaxraw;
-
   }
+  /*//  Simp BMS  Uncomment when switched over to SIMP BMS
+  if (msg.id == 0X373)
+  {
+    Batmaxraw = (( msg.buf[3] << 8) | msg.buf[2]); // Needed if VCU is controlling Outlander charger. Can be removed once SIMP BMS does that
+    Batmax = Batmaxraw;
+  }
+   if (msg.id == 0X355)
+  {
+    Batterysoc = (( msg.buf[1] << 8) | msg.buf[0]);;
+}
+if (msg.id == 0X356)
+  {
+     Batvoltraw = (( msg.buf[1] << 0) | msg.buf[1]);
+     Batvolt = Batvoltraw / 32;
+    }
+    
+    */
+
 
 }
 
@@ -328,7 +345,7 @@ void loop() {
     closecontactor(); //checks precharge level and close contactor
     coolant(); // check coolant temperature and swtich on engine bay fan if needed.
     gauges(); //send information to guages
-    
+
   }
   else if (chargemode == 2)
   {
